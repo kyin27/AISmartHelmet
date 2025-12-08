@@ -63,35 +63,86 @@ import Vision
 final class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     @Published var detections: [VNRecognizedObjectObservation] = []
     let session = AVCaptureSession()
-    private let detector = YOLODetector()
+    private let detector = YOLODetector.shared
 
     override init() {
         super.init()
-        configureSession()
+        start()
+    }
+
+    private func start() {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            configureSession()
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                Task { @MainActor in
+                    if granted { self.configureSession() }
+                    else { print("❌ Camera access denied") }
+                }
+            }
+        default:
+            print("❌ Camera access unavailable (denied/restricted)")
+        }
     }
 
     private func configureSession() {
-        // Session mutations must occur on the main actor
-        self.session.beginConfiguration()
-        self.session.sessionPreset = .high
+        print("➡️ Begin ultrawide session configuration")
+        session.beginConfiguration()
+        session.sessionPreset = .high
 
-        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
-              let input = try? AVCaptureDeviceInput(device: device),
-              self.session.canAddInput(input) else {
-            print("Failed to set up camera input")
+        // Discover ultrawide camera
+        let discovery = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [.builtInUltraWideCamera],
+            mediaType: .video,
+            position: .back
+        )
+
+        guard let device = discovery.devices.first else {
+            print("❌ No ultrawide camera found, falling back to wide angle")
+            if let fallback = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) {
+                addInput(for: fallback)
+            }
+            session.commitConfiguration()
             return
         }
 
-        self.session.addInput(input)
+        addInput(for: device)
 
         let output = AVCaptureVideoDataOutput()
+        output.videoSettings = [
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
+        ]
+        output.alwaysDiscardsLateVideoFrames = true
         output.setSampleBufferDelegate(self, queue: DispatchQueue(label: "videoQueue"))
-        if self.session.canAddOutput(output) {
-            self.session.addOutput(output)
+
+        if session.canAddOutput(output) {
+            session.addOutput(output)
+            print("✅ Added video output")
         }
 
-        self.session.commitConfiguration()
-        self.session.startRunning()
+        // iOS 17+ uses videoRotationAngle instead of videoOrientation
+        if let connection = output.connection(with: .video) {
+            connection.videoRotationAngle = 0 // Portrait
+        }
+
+        session.commitConfiguration()
+        print("➡️ Commit session configuration")
+
+        session.startRunning()
+        print("🚀 Session startRunning called")
+    }
+
+    private func addInput(for device: AVCaptureDevice) {
+        do {
+            let input = try AVCaptureDeviceInput(device: device)
+            if session.canAddInput(input) {
+                session.addInput(input)
+                print("✅ Added camera input:", device.localizedName)
+            }
+        } catch {
+            print("❌ Failed to create device input:", error.localizedDescription)
+        }
     }
 
     nonisolated func captureOutput(_ output: AVCaptureOutput,
@@ -99,10 +150,8 @@ final class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputS
                                    from connection: AVCaptureConnection) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
-        // Run detection off the main actor
         Task {
             let results = await detector.detect(pixelBuffer: pixelBuffer)
-            // Hop back to main to publish results
             await MainActor.run {
                 self.detections = results
             }

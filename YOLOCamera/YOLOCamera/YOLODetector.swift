@@ -9,13 +9,15 @@ import Vision
 import CoreML
 
 final class YOLODetector: @unchecked Sendable {
+    static let shared = YOLODetector()
+
     private let visionModel: VNCoreMLModel
 
-    init() {
+    private init() {
         guard let url = Bundle.main.url(forResource: "best", withExtension: "mlmodelc"),
               let mlModel = try? MLModel(contentsOf: url),
               let vnModel = try? VNCoreMLModel(for: mlModel) else {
-            fatalError("Failed to load YOLOv8 Core ML model")
+            fatalError("❌ Failed to load YOLOv8 Core ML model")
         }
         self.visionModel = vnModel
     }
@@ -26,14 +28,13 @@ final class YOLODetector: @unchecked Sendable {
 
         do {
             try handler.perform([request])
-            let results = request.results as? [VNRecognizedObjectObservation] ?? []
-            // Return a copy to satisfy Sendable concerns
-            return results.map { $0 }
+            return (request.results as? [VNRecognizedObjectObservation])?.map { $0 } ?? []
         } catch {
             return []
         }
     }
 }
+
 
 
 

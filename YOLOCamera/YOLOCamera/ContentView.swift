@@ -11,13 +11,17 @@ struct ContentView: View {
     @StateObject private var camera = CameraManager()
 
     var body: some View {
-        ZStack {
-            CameraPreview(session: camera.session)
-                .edgesIgnoringSafeArea(.all)
-            DetectionOverlay(detections: camera.detections)
+        GeometryReader { geo in
+            ZStack {
+                CameraPreview(session: camera.session)
+                    .ignoresSafeArea()
+
+                DetectionOverlay(detections: camera.detections, frameSize: geo.size)
+            }
         }
     }
 }
+
 
 @main
 struct YOLOCameraApp: App {

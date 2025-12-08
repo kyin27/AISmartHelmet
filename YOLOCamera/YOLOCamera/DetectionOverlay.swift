@@ -6,34 +6,39 @@
 //
 import SwiftUI
 import Vision
-
 struct DetectionOverlay: View {
     let detections: [VNRecognizedObjectObservation]
+    let frameSize: CGSize
 
     var body: some View {
-        GeometryReader { geo in
-            ForEach(detections, id: \.uuid) { det in
-                let rect = det.boundingBox
-                let box = CGRect(
-                    x: rect.minX * geo.size.width,
-                    y: (1 - rect.maxY) * geo.size.height,
-                    width: rect.width * geo.size.width,
-                    height: rect.height * geo.size.height
-                )
+        ZStack {
+            ForEach(detections.indices, id: \.self) { i in
+                let observation = detections[i]
+                let rect = convert(observation.boundingBox)
 
-                ZStack {
-                    Rectangle()
-                        .stroke(Color.red, lineWidth: 2)
-                        .frame(width: box.width, height: box.height)
-                        .position(x: box.midX, y: box.midY)
+                Rectangle()
+                    .stroke(Color.red, lineWidth: 2)
+                    .frame(width: rect.width, height: rect.height)
+                    .position(x: rect.midX, y: rect.midY)
 
-                    Text(det.labels.first?.identifier ?? "")
-                        .foregroundColor(.yellow)
-                        .position(x: box.minX, y: box.minY)
-                }
+                Text(observation.labels.first?.identifier ?? "")
+                    .font(.caption)
+                    .foregroundColor(.white)
+                    .background(Color.black.opacity(0.7))
+                    .position(x: rect.midX, y: rect.minY - 10)
             }
         }
     }
+
+    private func convert(_ boundingBox: CGRect) -> CGRect {
+        // Vision boundingBox is normalized (0–1), origin at bottom-left
+        let w = boundingBox.width * frameSize.width
+        let h = boundingBox.height * frameSize.height
+        let x = boundingBox.minX * frameSize.width
+        let y = (1 - boundingBox.maxY) * frameSize.height
+        return CGRect(x: x, y: y, width: w, height: h)
+    }
 }
+
 
 
