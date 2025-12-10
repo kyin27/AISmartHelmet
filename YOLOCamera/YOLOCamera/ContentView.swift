@@ -16,7 +16,12 @@ struct ContentView: View {
                 CameraPreview(session: camera.session)
                     .ignoresSafeArea()
 
-                DetectionOverlay(detections: camera.detections, frameSize: geo.size)
+                DetectionOverlay(
+                    detections: camera.detections,
+                    frameSize: geo.size,
+                    orientation: UIDevice.current.orientation
+                )
+
             }
         }
     }

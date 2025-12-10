@@ -8,32 +8,43 @@ import Foundation
 import Vision
 import CoreML
 
-final class YOLODetector: @unchecked Sendable {
+@MainActor
+final class YOLODetector {
     static let shared = YOLODetector()
 
-    private let visionModel: VNCoreMLModel
+    private let model: VNCoreMLModel
 
     private init() {
-        guard let url = Bundle.main.url(forResource: "best", withExtension: "mlmodelc"),
-              let mlModel = try? MLModel(contentsOf: url),
-              let vnModel = try? VNCoreMLModel(for: mlModel) else {
-            fatalError("❌ Failed to load YOLOv8 Core ML model")
+        guard let coreMLModel = try? carDetectionModel(configuration: MLModelConfiguration()).model,
+              let visionModel = try? VNCoreMLModel(for: coreMLModel) else {
+            fatalError("Failed to load YOLOv8 Core ML model")
         }
-        self.visionModel = vnModel
+
+        self.model = visionModel
     }
 
-    nonisolated func detect(pixelBuffer: CVPixelBuffer) async -> [VNRecognizedObjectObservation] {
-        let request = await VNCoreMLRequest(model: visionModel)
-        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
+    func detect(pixelBuffer: CVPixelBuffer) async -> [VNRecognizedObjectObservation] {
+        await withCheckedContinuation { continuation in
+            let request = VNCoreMLRequest(model: model) { request, _ in
+                let results = request.results as? [VNRecognizedObjectObservation] ?? []
+                continuation.resume(returning: results)
+            }
 
-        do {
-            try handler.perform([request])
-            return (request.results as? [VNRecognizedObjectObservation])?.map { $0 } ?? []
-        } catch {
-            return []
+            // Preserve aspect ratio when resizing to model input
+            request.imageCropAndScaleOption = .scaleFit
+
+            let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up)
+            do {
+                try handler.perform([request])
+            } catch {
+                print("Vision request failed:", error.localizedDescription)
+                continuation.resume(returning: [])
+            }
         }
     }
 }
+
+
 
 
 

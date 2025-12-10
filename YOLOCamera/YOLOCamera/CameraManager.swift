@@ -78,16 +78,16 @@ final class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputS
             AVCaptureDevice.requestAccess(for: .video) { granted in
                 Task { @MainActor in
                     if granted { self.configureSession() }
-                    else { print("❌ Camera access denied") }
+                    else { print("Camera access denied") }
                 }
             }
         default:
-            print("❌ Camera access unavailable (denied/restricted)")
+            print("Camera access unavailable (denied/restricted)")
         }
     }
 
     private func configureSession() {
-        print("➡️ Begin ultrawide session configuration")
+        print("Begin ultrawide session configuration")
         session.beginConfiguration()
         session.sessionPreset = .high
 
@@ -99,7 +99,7 @@ final class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputS
         )
 
         guard let device = discovery.devices.first else {
-            print("❌ No ultrawide camera found, falling back to wide angle")
+            print("No ultrawide camera found, falling back to wide angle")
             if let fallback = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) {
                 addInput(for: fallback)
             }
@@ -118,19 +118,20 @@ final class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputS
 
         if session.canAddOutput(output) {
             session.addOutput(output)
-            print("✅ Added video output")
+            print("Added video output")
         }
 
-        // iOS 17+ uses videoRotationAngle instead of videoOrientation
+        // iOS 17+ rotation API — set to landscape
         if let connection = output.connection(with: .video) {
-            connection.videoRotationAngle = 0 // Portrait
+            connection.videoRotationAngle = 180   // Landscape Left
+            // Use 180 for Landscape Left if needed
         }
 
         session.commitConfiguration()
-        print("➡️ Commit session configuration")
+        print("Commit session configuration")
 
         session.startRunning()
-        print("🚀 Session startRunning called")
+        print("Session startRunning called")
     }
 
     private func addInput(for device: AVCaptureDevice) {
@@ -138,10 +139,10 @@ final class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputS
             let input = try AVCaptureDeviceInput(device: device)
             if session.canAddInput(input) {
                 session.addInput(input)
-                print("✅ Added camera input:", device.localizedName)
+                print("Added camera input:", device.localizedName)
             }
         } catch {
-            print("❌ Failed to create device input:", error.localizedDescription)
+            print("Failed to create device input:", error.localizedDescription)
         }
     }
 

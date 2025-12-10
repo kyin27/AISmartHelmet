@@ -14,7 +14,7 @@
 		03CE97052EE4F6BB0075C305 /* Exceptions for "YOLOCamera" folder in "YOLOCamera" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				best.mlpackage,
+				carDetectionModel.mlpackage,
 				Info.plist,
 			);
 			target = 03CE96E22EE3DF800075C305 /* YOLOCamera */;
@@ -22,11 +22,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		03CE97042EE4F3C00075C305 /* Exceptions for "YOLOCamera" folder in "Copy Bundle Resources" phase from "YOLOCamera" target */ = {
+		03CE974D2EE67CF80075C305 /* Exceptions for "YOLOCamera" folder in "Copy Bundle Resources" phase from "YOLOCamera" target */ = {
 			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
 			buildPhase = 03CE96E12EE3DF800075C305 /* Resources */;
 			membershipExceptions = (
-				best.mlpackage,
+				carDetectionModel.mlpackage,
 			);
 		};
 /* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
@@ -36,7 +36,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				03CE97052EE4F6BB0075C305 /* Exceptions for "YOLOCamera" folder in "YOLOCamera" target */,
-				03CE97042EE4F3C00075C305 /* Exceptions for "YOLOCamera" folder in "Copy Bundle Resources" phase from "YOLOCamera" target */,
+				03CE974D2EE67CF80075C305 /* Exceptions for "YOLOCamera" folder in "Copy Bundle Resources" phase from "YOLOCamera" target */,
 			);
 			path = YOLOCamera;
 			sourceTree = "<group>";
